@@ -26,10 +26,11 @@ void wifi_scan_callback(WiFiAccessPoint* wap, void* data); // forward declaratio
 
 /* Constants -----------------------------------------------------------------*/
 const unsigned long STARTUP_WAIT_TIME_MS = 5000;
-const unsigned long CONNECT_WAIT_TIME_MS = 60000;
+const unsigned long CONNECT_WAIT_TIME_MS = 3000; // doesn't really work, no good interrupt
 
 /* Global Variables-----------------------------------------------------------*/
 
+byte mac[6];
 enum State { STARTUP_STATE, WIFI_REPORT_STATE, CONNECT_WAIT_STATE, CONNECT_REPORT_STATE, CLOUD_CONNECT_WAIT_STATE, CLOUD_CONNECTED_STATE, DISCONNECT_STATE, IDLE_STATE };
 State state = STARTUP_STATE;
 unsigned long stateTime = 0;
@@ -64,23 +65,32 @@ void loop() {
 		// Running in semi-automatic mode, turn on WiFi before beginning
 		WiFi.on();
 
+		// MAC ADDRESS
+		WiFi.macAddress(mac);
+		Serial.print("MAC address: ");
+		for (int i=0; i<6; i++) {
+			Serial.printf("%02x%s", mac[i], i != 5 ? ":" : "");
+		}
+		Serial.println();
+
 		// If WiFi has been configured, print out the configuration (does not include passwords)
 		if (WiFi.hasCredentials()) {
-			Serial.printlnf("configured credentials:");
+			Serial.printlnf("----- configured credentials -----");
 			WiFiAccessPoint ap[5];
 			int found = WiFi.getCredentials(ap, 5);
 			for(int ii = 0; ii < found; ii++) {
-				Serial.printlnf("ssid=%s security=%s cipher=%d", ap[ii].ssid, securityString(ap[ii].security), ap[ii].cipher);
+				Serial.printlnf("ssid=%s, security=%s, cipher=%d, channel = %d", 
+					ap[ii].ssid, securityString(ap[ii].security), ap[ii].cipher, ap[ii].channel);
 			}
 		}
 
 		// Print out nearby access points
-		Serial.printlnf("available access points:");
+		Serial.printlnf("----- available access points -----");
 		WiFi.scan(wifi_scan_callback);
 
 		// Connect to WiFi (but not cloud)
-		Serial.println("connecting to WiFi");
-		WiFi.connect();
+		Serial.println("----- connecting to WiFi... -----");
+		WiFi.connect(WIFI_CONNECT_SKIP_LISTEN);
 		state = CONNECT_WAIT_STATE;
 		stateTime = millis();
 		break;
@@ -89,11 +99,16 @@ void loop() {
 		if (WiFi.ready()) {
 			state = CONNECT_REPORT_STATE;
 		}
+		/* if (millis() - stateTime >= CONNECT_WAIT_TIME_MS) {
+			Serial.println("TIMEOUT: WiFi connection is taking too long, stopping attempts to connect. Press reset to restart photon to try again or change CONNECT_WAIT_TIME_MS constant.");
+			WiFi.disconnect();
+			state = IDLE_STATE;
+		}*/
 		break;
 
 	case CONNECT_REPORT_STATE:
 		{
-			Serial.println("connected to WiFi!");
+			Serial.println("----- connected to WiFi! -----");
 
 			Serial.printlnf("localIP=%s", WiFi.localIP().toString().c_str());
 			Serial.printlnf("subnetMask=%s", WiFi.subnetMask().toString().c_str());
@@ -154,7 +169,7 @@ void loop() {
 				}
 			}
 
-			Serial.println("connecting to cloud");
+			Serial.println("----- connecting to cloud... -----");
 			Particle.connect();
 		}
 
@@ -163,7 +178,7 @@ void loop() {
 
 	case CLOUD_CONNECT_WAIT_STATE:
 		if (Particle.connected()) {
-			Serial.println("connected to the cloud!");
+			Serial.println("----- connected to the cloud! -----");
 			state = CLOUD_CONNECTED_STATE;
 		}
 		break;
@@ -194,6 +209,14 @@ const char *securityString(int value) {
 
 	case WLAN_SEC_WPA2:
 		sec = "wpa2";
+		break;
+
+	case WLAN_SEC_WPA_ENTERPRISE:
+		sec = "wpa e";
+		break;
+
+	case WLAN_SEC_WPA2_ENTERPRISE:
+		sec = "wpa2 e";
 		break;
 
 	case WLAN_SEC_NOT_SET:

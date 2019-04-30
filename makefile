@@ -1,8 +1,8 @@
 LAST_BIN:=$(shell ls -Art *.bin | tail -n 1)
 BIN:=$(LAST_BIN)
-DEVICE?="photon"
+PLATFORM?="photon"
 VERSION?="1.0.1"
-TARGET?=
+device?=
 
 ### PROJECT SPECIFIC RULES ###
 
@@ -16,41 +16,74 @@ blink: blink.bin flash
 
 ### GENERAL RULES ###
 
+list:
+	@echo "\nINFO: querying list of available devices..."
+	@particle list
+
+monitor:
+	@echo "\nINFO: connecting to serial monitor..."
+	@trap "exit" INT; while :; do particle serial monitor; done
+
+doctor:
+	@echo "\nINFO: starting particle doctor (requires device in DFU mode = yellow)..."
+	@echo "WARNING: do NOT reset keys if device is not claimed by you - it may become impossible to access"
+	@particle doctor
+
+identify:
+	@echo "\nINFO: checking identify of device connected to serial (requires device in listening mode = blue)..."
+	@particle serial identify
+
+rainbow_on:
+ifeq ($(device),)
+	@echo "ERROR: no device provided, specify the name to make rainbows via make nyan device=???."
+else
+	@echo "\nINFO: starting rainbow on $(device)..."
+	@particle nyan $(device) on
+endif
+
+rainbow_off:
+ifeq ($(device),)
+	@echo "ERROR: no device provided, specify the name to make rainbows via make nyan device=???."
+else
+	@echo "\nINFO: stopping rainbow on $(device)..."
+	@particle nyan $(device) off
+endif
+
 # general compile - usually useful but not in the case of this project
 compile: 
 	@echo "ERROR: general compile not supported for this particular project."
-#@echo "INFO: compiling everything in the cloud for $(DEVICE) $(VERSION)...."
-#@particle compile $(DEVICE) --target $(VERSION)
+#@echo "INFO: compiling everything in the cloud for $(PLATFORM) $(VERSION)...."
+#@particle compile $(PLATFORM) --target $(VERSION)
 
 # compile single file in the cloud (this is the typical use case for this project)
 %.bin: src/%.cpp
-	@echo "\nINFO: compiling $< in the cloud for $(DEVICE) $(VERSION)...."
-	@particle compile $(DEVICE) $< --target $(VERSION) --saveTo $@
+	@echo "\nINFO: compiling $< in the cloud for $(PLATFORM) $(VERSION)...."
+	@particle compile $(PLATFORM) $< --target $(VERSION) --saveTo $@
 
-# flash (via cloud if TARGET device is set, via usb if none provided)
+# flash (via cloud if device is set, via usb if none provided)
 # by the default the latest bin, unless BIN otherwise specified
 flash:
-ifeq ($(TARGET),)
-	$(MAKE) usb_flash
+ifeq ($(device),)
+	@$(MAKE) usb_flash BIN=$(BIN)
 else
-	$(MAKE) cloud_flash
+	@$(MAKE) cloud_flash BIN=$(BIN)
 endif
 
 # flash via the cloud
 cloud_flash:
-ifeq ($(TARGET),)
-	@echo "ERROR: no TARGET provided, specify the name of the device to flash."
+ifeq ($(device),)
+	@echo "ERROR: no device provided, specify the name to flash via make ... device=???."
 else
-	@echo "\nINFO: flashing $(BIN) to $(TARGET) via the cloud..."
-	@particle flash $(TARGET) $(BIN)
+	@echo "\nINFO: flashing $(BIN) to $(device) via the cloud..."
+	@particle flash $(device) $(BIN)
 endif
 
 # usb flash
 usb_flash:
-	@echo "INFO: flashing $(BIN) over USB (requires device in DFU mode)..."
+	@echo "INFO: flashing $(BIN) over USB (requires device in DFU mode = yellow)..."
 	@particle flash --usb  $(BIN)
 
 # cleaning
 clean:
 	@echo "INFO: removing all .bin files..."
-	@rm ./*.bin
+	@rm -f ./*.bin

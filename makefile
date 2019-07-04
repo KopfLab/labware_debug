@@ -14,6 +14,11 @@ cloud_debug: cloud_debug.bin flash
 blink: BIN=blink.bin 
 blink: blink.bin flash
 
+# i2c scanner
+i2c_scanner: BIN=i2c_scanner.bin 
+i2c_scanner: i2c_scanner.bin flash
+
+
 ### GENERAL RULES ###
 
 list:
@@ -58,7 +63,7 @@ compile:
 # compile single file in the cloud (this is the typical use case for this project)
 %.bin: src/%.cpp
 	@echo "\nINFO: compiling $< in the cloud for $(PLATFORM) $(VERSION)...."
-	@particle compile $(PLATFORM) $< --target $(VERSION) --saveTo $@
+	@particle compile $(PLATFORM) $< project.properties --target $(VERSION) --saveTo $@
 
 # flash (via cloud if device is set, via usb if none provided)
 # by the default the latest bin, unless BIN otherwise specified

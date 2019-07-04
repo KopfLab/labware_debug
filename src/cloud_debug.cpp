@@ -1,6 +1,9 @@
 #include "Particle.h"
 
-// cloud (wifi and particle) geneal debugger
+// wifi error codes:
+// https://github.com/particle-iot/device-os/blob/1b1805fb4afcb93b0e92fbecfd28c082d6310285/hal/src/photon/wiced/WWD/include/wwd_constants.h
+
+// cloud (wifi and particle) general debugger
 // source: https://github.com/rickkas7/photon-clouddebug
 
 // In order to use this with full debugging, you need a debug build of system firmware
@@ -63,7 +66,10 @@ void loop() {
 
 	case WIFI_REPORT_STATE:
 		// Running in semi-automatic mode, turn on WiFi before beginning
+		Serial.println("----- turning on WiFi module -----");
 		WiFi.on();
+		Serial.println("----- setting to use dynamic IP -----");
+		WiFi.useDynamicIP();
 
 		// MAC ADDRESS
 		WiFi.macAddress(mac);

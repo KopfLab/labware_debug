@@ -18,6 +18,9 @@ blink: blink.bin flash
 i2c_scanner: BIN=i2c_scanner.bin 
 i2c_scanner: i2c_scanner.bin flash
 
+# lcd test
+lcd_test: BIN=lcd_test.bin
+lcd_test: lcd_test.bin flash
 
 ### GENERAL RULES ###
 

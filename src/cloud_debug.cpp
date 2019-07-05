@@ -79,6 +79,10 @@ void loop() {
 		}
 		Serial.println();
 
+		// Firmware version
+		Serial.print("Firmware version: ");
+		Serial.println(System.version());
+
 		// If WiFi has been configured, print out the configuration (does not include passwords)
 		if (WiFi.hasCredentials()) {
 			Serial.printlnf("----- configured credentials -----");

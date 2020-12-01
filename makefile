@@ -1,26 +1,26 @@
 LAST_BIN:=$(shell ls -Art *.bin | tail -n 1)
 BIN:=$(LAST_BIN)
-PLATFORM?="photon"
-VERSION?="1.0.1"
+PLATFORM?=photon
+VERSION?=2.0.0-rc.4
 device?=
 
 ### PROJECT SPECIFIC RULES ###
 
 # cloud debug
-cloud_debug: BIN=cloud_debug.bin 
-cloud_debug: cloud_debug.bin flash
+cloud_debug: BIN=cloud_debug-$(VERSION).bin 
+cloud_debug: cloud_debug-$(VERSION).bin flash monitor
 
 # blink
-blink: BIN=blink.bin 
-blink: blink.bin flash
+blink: BIN=blink-$(VERSION).bin 
+blink: blink-$(VERSION).bin flash
 
 # i2c scanner
-i2c_scanner: BIN=i2c_scanner.bin 
-i2c_scanner: i2c_scanner.bin flash
+i2c_scanner: BIN=i2c_scanner-$(VERSION).bin 
+i2c_scanner: i2c_scanner-$(VERSION).bin flash monitor
 
 # lcd test
-lcd_test: BIN=lcd_test.bin
-lcd_test: lcd_test.bin flash
+lcd_test: BIN=lcd_test-$(VERSION).bin
+lcd_test: lcd_test-$(VERSION).bin flash monitor
 
 ### GENERAL RULES ###
 
@@ -33,9 +33,10 @@ monitor:
 	@trap "exit" INT; while :; do particle serial monitor; done
 
 doctor:
-	@echo "\nINFO: starting particle doctor (requires device in DFU mode = yellow)..."
+	@particle usb dfu
+	@echo "\nINFO: starting particle doctor..."
 	@echo "WARNING: do NOT reset keys if device is not claimed by you - it may become impossible to access"
-	@particle doctor
+	@particle device doctor
 
 identify:
 	@echo "\nINFO: checking identify of device connected to serial (requires device in listening mode = blue)..."
@@ -64,7 +65,7 @@ compile:
 #@particle compile $(PLATFORM) --target $(VERSION)
 
 # compile single file in the cloud (this is the typical use case for this project)
-%.bin: src/%.cpp
+%-$(VERSION).bin: src/%.cpp
 	@echo "\nINFO: compiling $< in the cloud for $(PLATFORM) $(VERSION)...."
 	@particle compile $(PLATFORM) $< project.properties --target $(VERSION) --saveTo $@
 
@@ -88,7 +89,9 @@ endif
 
 # usb flash
 usb_flash:
-	@echo "INFO: flashing $(BIN) over USB (requires device in DFU mode = yellow)..."
+	@echo "INFO: putting device into DFU mode"
+	@particle usb dfu
+	@echo "INFO: flashing $(BIN) over USB (requires device in DFU mode = yellow blinking)..."
 	@particle flash --usb  $(BIN)
 
 # cleaning
